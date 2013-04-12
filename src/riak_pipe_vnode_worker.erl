@@ -136,6 +136,7 @@
          recurse_input/4,
          send_handoff/2,
          send_archive/1,
+         send_checkpoint/1,
          send_output/3,
          send_output/4,
          send_output/5]).
@@ -205,6 +206,11 @@ send_handoff(WorkerPid, Handoff) ->
 -spec send_archive(pid()) -> ok.
 send_archive(WorkerPid) ->
     gen_fsm:send_event(WorkerPid, archive).
+
+%% @doc Ask the worker to checkpoint its state.
+-spec send_checkpoint(pid()) -> ok.
+send_checkpoint(WorkerPid) ->
+    gen_fsm:send_event(WorkerPid, checkpoint).
 
 %% @equiv send_output(Output, FromPartition, Details, infinity)
 send_output(Output, FromPartition, Details) ->
@@ -385,7 +391,16 @@ wait_for_input(archive, State) ->
     %% sending handoff to another vnode
     Archive = archive(State),
     reply_archive(Archive, State),
-    {stop, normal, State}.
+    {stop, normal, State};
+wait_for_input(checkpoint, State) ->
+    Archive = archive(State),
+    case Archive of
+        undefined ->
+            ok;
+        _ ->
+            checkpoint(Archive, State)
+    end,
+    {next_state, wait_for_input, State}.
 
 %% @doc Unused.
 -spec handle_event(term(), atom(), state()) ->
@@ -506,6 +521,20 @@ archive(#state{details=FD, modstate=ModState}) ->
             Archive;
         false ->
             %% module doesn't bother handif off state
+            undefined
+    end.
+
+%% @doc Process an checkpont request - call the implementing module's
+%%      `checkpont/1' fucntion, if exported.  The atom `undefined' is if
+%%      checkpoint/1 is not exported.
+-spec checkpoint(term(), state()) -> ok.
+checkpoint(Archive, #state{details=FD}) ->
+    Module = FD#fitting_details.module,
+    case lists:member({checkpoint, 1}, Module:module_info(exports)) of
+        true ->
+            Module:checkpoint(Archive);
+        false ->
+            %% module doesn't implement checkpointing
             undefined
     end.
 
