@@ -328,6 +328,10 @@ init([Partition, VnodePid, #fitting_details{module=Module}=FittingDetails]) ->
                     {VnodePid, VnodePid},
                     {details, FittingDetails}]),
         {ok, ModState} = Module:init(Partition, FittingDetails),
+
+        % checkpointing timer.
+        schedule_checkpointing_timer(),
+
         {ok, initial_input_request,
          #state{partition=Partition,
                 details=FittingDetails,
@@ -393,6 +397,8 @@ wait_for_input(archive, State) ->
     reply_archive(Archive, State),
     {stop, normal, State};
 wait_for_input(checkpoint, State) ->
+    lager:info("Checkpointing in progress."),
+
     Archive = archive(State),
     case Archive of
         undefined ->
@@ -415,9 +421,20 @@ handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
 
-%% @doc Unused.
+%% @doc Handle checkpointing messages coming from the checkpointing
+%%      timer.
 -spec handle_info(term(), atom(), state()) ->
          {next_state, atom(), state()}.
+handle_info(checkpoint, StateName, State) ->
+    lager:info("Checkpointing message received."),
+
+    %% Schedule the next checkpoint.
+    schedule_checkpointing_timer(),
+
+    %% Call the checkpointing locally.
+    gen_fsm:send_event(self(), checkpoint),
+
+    {next_state, StateName, State};
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -564,3 +581,12 @@ forward_preflist(Input, UsedPreflist,
                              FittingDetails#fitting_details.module,
                              State, Input)
     end.
+
+-spec schedule_checkpointing_timer() -> term() | false.
+schedule_checkpointing_timer() ->
+    lager:info("Checkpointing scheduled for vnode."),
+
+    CheckpointTick = app_helper:get_env(riak_pipe,
+                                        vnode_checkpoint_timer,
+                                        10000),
+    erlang:send_after(CheckpointTick, self(), checkpoint).
