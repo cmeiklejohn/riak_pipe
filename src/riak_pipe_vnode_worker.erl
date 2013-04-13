@@ -397,8 +397,6 @@ wait_for_input(archive, State) ->
     reply_archive(Archive, State),
     {stop, normal, State};
 wait_for_input(checkpoint, State) ->
-    lager:info("Checkpointing in progress."),
-
     Archive = archive(State),
     case Archive of
         undefined ->
@@ -426,8 +424,6 @@ handle_sync_event(_Event, _From, StateName, State) ->
 -spec handle_info(term(), atom(), state()) ->
          {next_state, atom(), state()}.
 handle_info(checkpoint, StateName, State) ->
-    lager:info("Checkpointing message received."),
-
     %% Schedule the next checkpoint.
     schedule_checkpointing_timer(),
 
@@ -584,8 +580,6 @@ forward_preflist(Input, UsedPreflist,
 
 -spec schedule_checkpointing_timer() -> term() | false.
 schedule_checkpointing_timer() ->
-    lager:info("Checkpointing scheduled for vnode."),
-
     CheckpointTick = app_helper:get_env(riak_pipe,
                                         vnode_checkpoint_timer,
                                         10000),
