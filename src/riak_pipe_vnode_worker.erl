@@ -329,7 +329,7 @@ init([Partition, VnodePid, #fitting_details{module=Module}=FittingDetails]) ->
                     {details, FittingDetails}]),
         {ok, ModState} = Module:init(Partition, FittingDetails),
 
-        % checkpointing timer.
+        %% checkpointing timer.
         schedule_checkpointing_timer(),
 
         {ok, initial_input_request,
@@ -578,6 +578,7 @@ forward_preflist(Input, UsedPreflist,
                              State, Input)
     end.
 
+%% @doc Schedule a timer for the checkpointing interval.
 -spec schedule_checkpointing_timer() -> term() | false.
 schedule_checkpointing_timer() ->
     CheckpointTick = app_helper:get_env(riak_pipe,
