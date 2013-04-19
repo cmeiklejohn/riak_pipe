@@ -541,11 +541,11 @@ archive(#state{details=FD, modstate=ModState}) ->
 %%      `checkpont/1' fucntion, if exported.  The atom `undefined' is if
 %%      checkpoint/1 is not exported.
 -spec checkpoint(term(), state()) -> ok.
-checkpoint(Archive, #state{details=FD}) ->
+checkpoint(Archive, #state{details=FD, modstate=ModState}) ->
     Module = FD#fitting_details.module,
-    case lists:member({checkpoint, 1}, Module:module_info(exports)) of
+    case lists:member({checkpoint, 2}, Module:module_info(exports)) of
         true ->
-            Module:checkpoint(Archive);
+            Module:checkpoint(Archive, ModState);
         false ->
             %% module doesn't implement checkpointing
             undefined
