@@ -538,8 +538,8 @@ archive(#state{details=FD, modstate=ModState}) ->
     end.
 
 %% @doc Process an checkpont request - call the implementing module's
-%%      `checkpont/1' fucntion, if exported.  The atom `undefined' is if
-%%      checkpoint/1 is not exported.
+%%      `checkpont/2' function, if exported.  The atom `undefined' is if
+%%      checkpoint/2 is not exported.
 -spec checkpoint(term(), state()) -> ok.
 checkpoint(Archive, #state{details=FD, modstate=ModState}) ->
     Module = FD#fitting_details.module,
